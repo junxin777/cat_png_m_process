@@ -59,11 +59,7 @@ void time_end()
 
 int catpng(struct recv_buf_flat *files_data)
 {
-
-    // printf("good\n");
     const int png_num = 50;
-
-    // printf("check %d\n", files_data[13].seq);
 
     int total_height = 0, buf_height = 0, buf_width = 0;
     unsigned long buf_uncompressed_data_size_total = 0;
@@ -72,40 +68,16 @@ int catpng(struct recv_buf_flat *files_data)
     // 2. find uncompressed total data buf size for IDAT
     for (int i = 0; i < png_num; i++)
     {
-        // FILE *file = fopen(argv[i + 1], "rb");
-
         struct data_IHDR *data_IHDR_create = calloc(1, sizeof(struct data_IHDR));
-
-        // if (file == NULL)
-        // {
-        //     perror("File not found.\n");
-        //     return -1;
-        // }
-        // printf("good%d\n", i);
         get_png_data_IHDR(data_IHDR_create, files_data[i]);
-        // printf("good%d\n", i);
-
-        // printf("Height: %d\n", data_IHDR->height);
-        // printf("Width: %d\n", data_IHDR->width);
-
+        
         buf_width = get_png_width(data_IHDR_create);
         buf_height = get_png_height(data_IHDR_create);
-
         total_height += buf_height;
-
-        // printf("each_height: %d\n", buf_height);
-        // printf("FM: %02hhx\n", data_IHDR_create->filter);
 
         free(data_IHDR_create);
         data_IHDR_create = NULL;
-        // fclose(file);
     }
-
-    // printf("good2\n");
-
-    // printf("total_height: %d\n", total_height);
-
-    // int offset = 0;
     int location = 0; // This is a coordination of writting umcompressed data
 
     // create buf stores UNZIPPED TOTAL data for IDAT
@@ -115,61 +87,17 @@ int catpng(struct recv_buf_flat *files_data)
     // create buf stores zipped TOTAL data size for IDAT
     U64 buf_compressed_data_size_total = 0;
 
-    // printf("ok\n");
-
     for (int i = 0; i < png_num; i++)
     {
-        // this size is unzipped data size for each png
-        // unsigned long buf_uncompressed_data_size_each = 0;
-        // int buf_height_each = 0;
-        // int buf_width_each = 0;
-
-        // FILE *file = fopen(argv[i + 1], "rb");
-
-        // calculate each IDAT data size
-        // struct data_IHDR *data_IHDR = calloc(1, sizeof(struct data_IHDR));
-        // get_png_data_IHDR(data_IHDR, files_data[i]);
-        // buf_width_each = get_png_width(data_IHDR);
-        // buf_height_each = get_png_height(data_IHDR);
-        // buf_uncompressed_data_size_each = buf_height_each * (buf_width_each * 4 + 1);
-
-        // printf("ok1\n");
-
-        // create buf stores uncompressed EACH data buf size for IDAT
-        // U8 *data_buf_uncompressed = (U8 *)calloc(buf_uncompressed_data_size_each, sizeof(U8)); //*****************
-        // U8 data_buf_uncompressed[buf_uncompressed_data_size_each]; //*****************
-
         struct chunk *chunk_IDAT = calloc(1, sizeof(struct chunk));
-        // printf("ok1\n");
+
         get_chunk_IDAT(chunk_IDAT, files_data[i]);
-        // printf("chunk_IDAT.length: %d\n", chunk_IDAT->length);
-        // add zipped length of each png to total zipped lengt
         buf_compressed_data_size_total += chunk_IDAT->length;
 
-        // buf_uncompressed_data_size_each = 0;
-
-        // mem_inf(data_buf_uncompressed, &buf_uncompressed_data_size_each, chunk_IDAT->p_data, chunk_IDAT->length);
-
-        // Don't work!!
-        // memcpy(buf_uncompressed_data + offset, data_buf_uncompressed, buf_uncompressed_data_size_each);
-        // offset += buf_uncompressed_data_size_each;
-
-        // for (int j = 0; j < buf_uncompressed_data_size_each; j++)
-        // {
-        //     buf_uncompressed_data[location] = data_buf_uncompressed[j];
-        //     location++;
-        // }
-
-        // free(data_IHDR);
-        // data_IHDR = NULL;
         free(chunk_IDAT->p_data);
         chunk_IDAT->p_data = NULL;
         free(chunk_IDAT);
         chunk_IDAT = NULL;
-        // free(data_buf_uncompressed);
-        // data_buf_uncompressed = NULL;
-
-        // fclose(file);
     }
 
     for (size_t i = 0; i < 50; i++)
@@ -181,10 +109,6 @@ int catpng(struct recv_buf_flat *files_data)
         }
     }
 
-    // printf("good3\n");
-
-    // printf("ok\n");
-
     // so far what we've done
     // 1. total height calculated
     // 2. total unzipped data from IDAT stored in buf_uncompressed_data
@@ -195,8 +119,6 @@ int catpng(struct recv_buf_flat *files_data)
 
     // zipp the unzipped data which calculated in the second loop
     mem_def(buf_compressed_data, &buf_compressed_data_size_total, buf_uncompressed_data, buf_uncompressed_data_size_total, Z_DEFAULT_COMPRESSION);
-    // printf("buf_compressed_data_size_total: %d\n", buf_compressed_data_size_total);
-    // printf("buf_uncompressed_data_size_total: %d\n", buf_uncompressed_data_size_total);
 
     // create new header
     U32 header1 = 0x89504E47;
@@ -207,8 +129,6 @@ int catpng(struct recv_buf_flat *files_data)
     header2 = htonl(header2);
     fwrite(&header1, 4, 1, all);
     fwrite(&header2, 4, 1, all);
-
-    // FILE *single_png = fopen(argv[1], "rb"); // model png file
 
     // create new IHDR chunk from same png file ------------------------------------------------
     struct chunk *chunk_IHDR = NULL;
@@ -224,8 +144,6 @@ int catpng(struct recv_buf_flat *files_data)
     U8 interlace = 0x00;
     buf_width = htonl(buf_width);
     total_height = htonl(total_height);
-    // printf("buf_width: %d\n", buf_width);
-    // printf("total_height: %d\n", total_height);
     memcpy(chunk_IHDR->p_data, &buf_width, 4);
     memcpy(chunk_IHDR->p_data + 4, &total_height, 4);
     memcpy(chunk_IHDR->p_data + 8, &bit_depth, 1);
