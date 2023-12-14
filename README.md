@@ -1,1 +1,1 @@
-Concatenated PNG strips retrieved from server using multi-thread with producer - consumer pattern
+Concatenated PNG strips retrieved from server using multi-process with producer - consumer pattern
